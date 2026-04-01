@@ -1,0 +1,86 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700;800&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Poppins", ui-sans-serif, system-ui, sans-serif;
+  
+  --color-brand-dark: #0F051A;
+  --color-brand-purple-deep: #2A0A4A;
+  --color-brand-purple: #6D28D9;
+  --color-brand-orange: #FF7A00;
+  --color-brand-yellow: #FFC107;
+}
+
+@layer base {
+  body {
+    @apply font-sans text-slate-200 antialiased bg-brand-dark;
+  }
+  h1, h2, h3, h4 {
+    @apply font-display;
+  }
+}
+
+.gradient-uau {
+  background: linear-gradient(135deg, var(--color-brand-purple-deep) 0%, var(--color-brand-purple) 100%);
+}
+
+.gradient-cta {
+  background: linear-gradient(135deg, var(--color-brand-orange) 0%, var(--color-brand-yellow) 100%);
+}
+
+.text-gradient-uau {
+  @apply bg-clip-text text-transparent;
+  background-image: linear-gradient(135deg, var(--color-brand-purple) 0%, #A855F7 100%);
+}
+
+.text-gradient-cta {
+  @apply bg-clip-text text-transparent;
+  background-image: linear-gradient(135deg, var(--color-brand-orange) 0%, var(--color-brand-yellow) 100%);
+}
+
+.glow-purple {
+  box-shadow: 0 0 30px rgba(109, 40, 217, 0.3);
+}
+
+.glow-orange {
+  box-shadow: 0 0 30px rgba(255, 122, 0, 0.4);
+}
+
+.glass-card {
+  @apply bg-white/5 backdrop-blur-lg border border-white/10;
+}
+
+.uau-animation {
+  animation: uau-pulse 2s infinite alternate;
+}
+
+.float-animation {
+  animation: float 6s ease-in-out infinite;
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-20px); }
+  100% { transform: translateY(0px); }
+}
+
+@keyframes uau-pulse {
+  from { filter: brightness(1) drop-shadow(0 0 5px rgba(255, 122, 0, 0.5)); }
+  to { filter: brightness(1.2) drop-shadow(0 0 20px rgba(255, 122, 0, 0.8)); }
+}
+
+/* Custom scrollbar for dark theme */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #0F051A;
+}
+::-webkit-scrollbar-thumb {
+  background: #2A0A4A;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #6D28D9;
+}

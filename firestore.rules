@@ -1,0 +1,106 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: userId (UID)
+    // Fields:
+    //   - uid: string (required, immutable) - Firebase Auth UID
+    //   - email: string (required, immutable) - User email
+    //   - displayName: string (optional) - User name
+    //   - photoURL: string (optional) - User photo
+    //   - subscriptionStatus: string (required, enum: ['free', 'pro', 'enterprise']) - Subscription plan
+    //   - createdAt: timestamp (required, immutable) - Creation date
+    //
+    // Collection: images
+    // Document ID: imageId
+    // Fields:
+    //   - id: string (required, immutable) - Image ID
+    //   - userId: string (required, immutable) - Owner UID
+    //   - originalUrl: string (required, immutable) - Original image URL
+    //   - processedUrl: string (required, immutable) - Processed image URL
+    //   - prompt: string (optional, immutable) - Prompt used
+    //   - createdAt: timestamp (required, immutable) - Creation date
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.subscriptionStatus == 'enterprise' || 
+         (request.auth.token.email == "fsnf0108@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+    function isValidUser(data) {
+      return hasRequiredFields(['uid', 'email', 'subscriptionStatus', 'createdAt']) &&
+             hasOnlyAllowedFields(['uid', 'email', 'displayName', 'photoURL', 'subscriptionStatus', 'createdAt']) &&
+             data.uid == request.auth.uid &&
+             isValidEmail(data.email) &&
+             data.subscriptionStatus in ['free', 'pro', 'enterprise'];
+    }
+
+    function isValidImage(data) {
+      return hasRequiredFields(['id', 'userId', 'originalUrl', 'processedUrl', 'createdAt']) &&
+             hasOnlyAllowedFields(['id', 'userId', 'originalUrl', 'processedUrl', 'prompt', 'createdAt']) &&
+             data.userId == request.auth.uid;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+    match /users/{userId} {
+      // Users can only read their own profile (PII protection)
+      allow read: if isOwner(userId) || isAdmin();
+      
+      // Users can create their own profile with 'free' status by default
+      allow create: if isOwner(userId) && isValidUser(request.resource.data) && 
+                    (request.resource.data.subscriptionStatus == 'free' || isAdmin());
+      
+      // Users can update their own profile but cannot change their subscriptionStatus (unless admin)
+      allow update: if isOwner(userId) && isValidUser(request.resource.data) && 
+                    (request.resource.data.subscriptionStatus == resource.data.subscriptionStatus || isAdmin()) &&
+                    request.resource.data.uid == resource.data.uid &&
+                    request.resource.data.email == resource.data.email &&
+                    request.resource.data.createdAt == resource.data.createdAt;
+    }
+
+    match /images/{imageId} {
+      // Users can only read their own images
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      
+      // Users can create their own images
+      allow create: if isAuthenticated() && isValidImage(request.resource.data);
+      
+      // Images are immutable once created
+      allow update, delete: if isAdmin();
+    }
+  }
+}
